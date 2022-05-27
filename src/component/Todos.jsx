@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styles from "./todo.module.css";
-import axios from 'axios';
+import axios from "axios";
 
 const Todos = () => {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [limit, setLimit] = useState(5)
+  const [limit, setLimit] = useState(5);
   const [newTodo, setNewTodo] = useState("");
   const [todos, setTodos] = useState([]);
   const [isCompleted, setIsCompleted] = useState(todos.isCompleted);
@@ -33,24 +33,42 @@ const Todos = () => {
 
   useEffect(() => {
     const getTodo = async () => {
-        let r= await axios.get(`http://localhost:3004/todos?_page=${page}&_limit=${limit}`);
-        console.log(r.data);
-        setTodos(r.data);
-        setTotalCount(Number(r.headers["x-total-count"]));
-    }
+      let r = await axios.get(
+        `http://localhost:3004/todos?_page=${page}&_limit=${limit}`
+      );
+      console.log(r.data);
+      setTodos(r.data);
+      setTotalCount(Number(r.headers["x-total-count"]));
+    };
     getTodo();
-    
+
     // fetch("http://localhost:3004/todos")
     //   .then((r) => r.json())
     //   .then((d) => {
     //     console.log("love",d);
     //     setTodos(d);
     //   });
-  }, [page,limit]);
+  }, [page, limit]);
 
   const onDelete = (id) => {
     let newTodos = todos.filter((todo) => todo.id !== id);
-    setTodos(newTodos);
+    fetch("http://localhost:3004/todos", {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        newTodos,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        // setTodos([...newTodos, d]);
+        setNewTodo("");
+        // getTodo();
+        setTodos(newTodos);
+      });
   };
 
   const editTodo = (id) => {
@@ -61,9 +79,24 @@ const Todos = () => {
       return todo;
     });
 
-    setTodos(updatedTodo);
-    setTodoEditing(null);
-    setEditingText("");
+    fetch("http://localhost:3004/todos", {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: id,
+        value: EditingText,
+        isCompleted: false,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setTodos(updatedTodo);
+        setTodoEditing(null);
+        setEditingText("");
+      });
   };
 
   return (
@@ -80,13 +113,31 @@ const Todos = () => {
           <button onClick={saveInfo}>+</button>
         </div>
 
+        <div className={styles.selectDiv}>
+          <h3>View List with</h3>
+          <select
+            className={styles.selectTAg}
+            name=""
+            id=""
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+            }}
+          >
+            <option className={styles.options} value="5">5</option>
+            <option className={styles.options} value="10">10</option>
+            <option className={styles.options} value="20">20</option>
+            <option className={styles.options} value="30">30</option>
+          </select>
+          <h3>List Items</h3>
+        </div>
+
         <div className={styles.main2}>
           {todos.map((todo) => (
             <div key={todo.id} className={styles.Lists}>
               <div className={styles.Lists1}>
                 <h3>{todo.id})</h3>
                 <input
-                    className={styles.TodoList}
+                  className={styles.TodoList}
                   type="checkbox"
                   checked={isCompleted}
                   onChange={(e) => {
@@ -145,16 +196,20 @@ const Todos = () => {
             </div>
           ))}
         </div>
-        <button disabled={page<=1} onClick={() => setPage(page-1)} >Prev</button>
-        <button disabled={totalCount< page*limit} onClick={() => setPage(page+1)}>Next</button>
-        <select name="" id="" onChange={(e) =>{
-            setLimit(Number(e.target.value))
-        }} >
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="30">30</option>
-        </select>
+        <button
+          className={styles.prevbtn}
+          disabled={page <= 1}
+          onClick={() => setPage(page - 1)}
+        >
+          Prev
+        </button>
+        <button
+          className={styles.nextbtn}
+          disabled={totalCount < page * limit}
+          onClick={() => setPage(page + 1)}
+        >
+          Next
+        </button>
       </div>
     </div>
   );
